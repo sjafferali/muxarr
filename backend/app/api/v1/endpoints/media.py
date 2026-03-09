@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/", response_model=list[MediaListResponse])
+@router.get("", response_model=list[MediaListResponse])
 async def list_media(
     media_type: str | None = Query(None, description="Filter by type: movie or show"),
     search: str | None = Query(None, description="Search by title"),
