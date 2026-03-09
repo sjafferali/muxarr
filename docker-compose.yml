@@ -9,6 +9,10 @@ services:
       - DATABASE_TYPE=sqlite
       - SQLITE_DATABASE_PATH=/app/data/muxarr.db
 
+      # User/group ID to match your media file ownership
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+
       # Application
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - WORKERS=${WORKERS:-2}
