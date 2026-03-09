@@ -60,9 +60,11 @@ class SyncService:
         try:
             movies = await self.radarr.get_movies()
         except Exception as e:
+            logger.error(f"Radarr sync failed: {e}")
             return 0, [f"Radarr sync failed: {e}"]
 
-        for movie in movies:
+        logger.info(f"Syncing {len(movies)} movies from Radarr")
+        for i, movie in enumerate(movies, 1):
             try:
                 # Check if already exists
                 result = await db.execute(
@@ -115,12 +117,15 @@ class SyncService:
                 # Probe file for tracks
                 await self._probe_and_update_tracks(db, media)
                 synced += 1
+                if i % 25 == 0:
+                    logger.info(f"Radarr sync progress: {i}/{len(movies)}")
 
             except Exception as e:
                 errors.append(f"Failed to sync movie '{movie.title}': {e}")
                 logger.error(f"Failed to sync movie '{movie.title}': {e}")
 
         await db.commit()
+        logger.info(f"Radarr sync complete: {synced} synced, {len(errors)} errors")
         return synced, errors
 
     async def _sync_sonarr(self, db: AsyncSession) -> tuple[int, list[str]]:
@@ -131,9 +136,11 @@ class SyncService:
         try:
             series_list = await self.sonarr.get_series()
         except Exception as e:
+            logger.error(f"Sonarr sync failed: {e}")
             return 0, [f"Sonarr sync failed: {e}"]
 
-        for series in series_list:
+        logger.info(f"Syncing {len(series_list)} series from Sonarr")
+        for i, series in enumerate(series_list, 1):
             try:
                 result = await db.execute(
                     select(Media).where(
@@ -182,12 +189,15 @@ class SyncService:
 
                 await self._probe_and_update_tracks(db, media)
                 synced += 1
+                if i % 25 == 0:
+                    logger.info(f"Sonarr sync progress: {i}/{len(series_list)}")
 
             except Exception as e:
                 errors.append(f"Failed to sync series '{series.title}': {e}")
                 logger.error(f"Failed to sync series '{series.title}': {e}")
 
         await db.commit()
+        logger.info(f"Sonarr sync complete: {synced} synced, {len(errors)} errors")
         return synced, errors
 
     async def _probe_and_update_tracks(self, db: AsyncSession, media: Media) -> None:

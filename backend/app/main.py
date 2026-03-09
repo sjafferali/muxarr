@@ -19,6 +19,8 @@ from app.models.media import AudioTrack, Media, SubtitleTrack  # noqa: F401
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
 
 
 @asynccontextmanager
@@ -64,7 +66,7 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(health_router, prefix="/api", tags=["health"])
+app.include_router(health_router, tags=["health"])
 app.include_router(v1_router, prefix="/api/v1")
 
 

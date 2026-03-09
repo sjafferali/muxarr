@@ -128,7 +128,9 @@ class MediaProbe:
     def __init__(self) -> None:
         self.ffprobe_path = settings.FFPROBE_PATH
 
-    async def probe_file(self, file_path: str) -> dict[str, Any] | None:
+    async def probe_file(
+        self, file_path: str, timeout: float = 30.0
+    ) -> dict[str, Any] | None:
         """Run ffprobe on a file and return parsed JSON output."""
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -143,7 +145,15 @@ class MediaProbe:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await proc.communicate()
+            try:
+                stdout, stderr = await asyncio.wait_for(
+                    proc.communicate(), timeout=timeout
+                )
+            except asyncio.TimeoutError:
+                proc.kill()
+                await proc.wait()
+                logger.error(f"ffprobe timed out after {timeout}s for {file_path}")
+                return None
 
             if proc.returncode != 0:
                 logger.error(f"ffprobe failed for {file_path}: {stderr.decode()}")
