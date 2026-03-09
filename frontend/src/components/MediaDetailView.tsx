@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import type { AudioTrack, SubtitleTrack } from '../types/media'
@@ -13,12 +14,10 @@ import { IconBack, IconFilm, IconTv, IconAudio, IconSubtitle } from './Icons'
 import TrackRow from './TrackRow'
 import ConfirmModal from './ConfirmModal'
 
-interface MediaDetailViewProps {
-  mediaId: number
-  onBack: () => void
-}
-
-const MediaDetailView: React.FC<MediaDetailViewProps> = ({ mediaId, onBack }) => {
+const MediaDetailView: React.FC = () => {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const mediaId = Number(id)
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'audio' | 'subtitle'>('audio')
   const [confirm, setConfirm] = useState<{
@@ -31,6 +30,7 @@ const MediaDetailView: React.FC<MediaDetailViewProps> = ({ mediaId, onBack }) =>
   const { data: media, isLoading } = useQuery({
     queryKey: ['media', mediaId],
     queryFn: () => fetchMediaDetail(mediaId),
+    enabled: !isNaN(mediaId),
   })
 
   const invalidateMedia = () => {
@@ -121,7 +121,7 @@ const MediaDetailView: React.FC<MediaDetailViewProps> = ({ mediaId, onBack }) =>
       {confirm && <ConfirmModal {...confirm} onCancel={() => setConfirm(null)} />}
 
       <button
-        onClick={onBack}
+        onClick={() => navigate(-1)}
         className="mb-5 inline-flex cursor-pointer items-center gap-2 border-none bg-none py-2 text-[13px] font-semibold text-[#9ca3af] transition-colors hover:text-[#e8eaed]"
       >
         <IconBack /> Back to Library

@@ -1,23 +1,23 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { MediaItem } from '../types/media'
 import { IconFilm, IconTv, IconAudio, IconSubtitle, IconHDD, IconChevronRight } from './Icons'
 
 interface MediaCardProps {
   media: MediaItem
-  onClick: () => void
   index: number
 }
 
-const MediaCard: React.FC<MediaCardProps> = ({ media, onClick, index }) => {
+const MediaCard: React.FC<MediaCardProps> = ({ media, index }) => {
   const [hovered, setHovered] = useState(false)
   const [imgError, setImgError] = useState(false)
 
   return (
-    <div
-      onClick={onClick}
+    <Link
+      to={`/media/${media.id}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`animate-fadeSlideIn flex cursor-pointer gap-4 rounded-xl p-4 transition-all duration-200 ease-[cubic-bezier(.4,0,.2,1)] ${
+      className={`animate-fadeSlideIn flex cursor-pointer gap-4 rounded-xl p-4 no-underline transition-all duration-200 ease-[cubic-bezier(.4,0,.2,1)] ${
         hovered ? 'translate-x-1 bg-white/[0.025]' : 'bg-transparent'
       }`}
       style={{ animationDelay: `${index * 0.04}s`, animationFillMode: 'both' }}
@@ -76,7 +76,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, onClick, index }) => {
       >
         <IconChevronRight />
       </div>
-    </div>
+    </Link>
   )
 }
 

@@ -5,11 +5,7 @@ import { fetchMedia, fetchStats, syncMedia } from '../api/media'
 import { IconSearch, IconFilm, IconAudio, IconSubtitle, IconHDD, IconSync } from './Icons'
 import MediaCard from './MediaCard'
 
-interface MediaListProps {
-  onSelectMedia: (id: number) => void
-}
-
-const MediaList: React.FC<MediaListProps> = ({ onSelectMedia }) => {
+const MediaList: React.FC = () => {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'movies' | 'shows'>('all')
@@ -144,7 +140,7 @@ const MediaList: React.FC<MediaListProps> = ({ onSelectMedia }) => {
         ) : (
           <div className="p-1">
             {media.map((m, i) => (
-              <MediaCard key={m.id} media={m} index={i} onClick={() => onSelectMedia(m.id)} />
+              <MediaCard key={m.id} media={m} index={i} />
             ))}
           </div>
         )}
