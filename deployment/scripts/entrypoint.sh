@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "Starting Python Web App Template..."
+echo "Starting Muxarr..."
 
 # Check if required environment variables are set
 if [ -z "$SECRET_KEY" ]; then

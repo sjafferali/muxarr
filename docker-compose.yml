@@ -10,9 +10,6 @@ services:
       - SQLITE_DATABASE_PATH=/app/data/muxarr.db
 
       # Application
-      - ENVIRONMENT=production
-      - PRODUCTION=true
-      - DEBUG=false
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - WORKERS=${WORKERS:-2}
 
