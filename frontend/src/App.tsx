@@ -1,116 +1,45 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import toast from 'react-hot-toast'
-
-interface HealthCheck {
-  status: string
-  environment: string
-  version: string
-}
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { fetchStats } from './api/media'
+import MediaList from './components/MediaList'
+import MediaDetailView from './components/MediaDetailView'
 
 function App() {
-  const [health, setHealth] = useState<HealthCheck | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [selectedMediaId, setSelectedMediaId] = useState<number | null>(null)
 
-  useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        const response = await axios.get<HealthCheck>('/api/health')
-        setHealth(response.data)
-        toast.success('Connected to backend!')
-      } catch (error) {
-        console.error('Health check failed:', error)
-        toast.error('Failed to connect to backend')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkHealth()
-  }, [])
+  const { data: stats } = useQuery({
+    queryKey: ['stats'],
+    queryFn: fetchStats,
+  })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-16">
-        <div className="mx-auto max-w-4xl">
-          <div className="rounded-xl bg-white p-8 shadow-lg">
-            <h1 className="mb-6 text-center text-4xl font-bold text-gray-800">
-              Python Web App Template
-            </h1>
-
-            <div className="mb-8">
-              <h2 className="mb-4 text-2xl font-semibold text-gray-700">
-                Welcome to Your New Application!
-              </h2>
-              <p className="leading-relaxed text-gray-600">
-                This is a full-stack web application template with a Python FastAPI backend and
-                React frontend. Everything is containerized and ready for development.
-              </p>
-            </div>
-
-            <div className="mb-8 rounded-lg bg-gray-50 p-6">
-              <h3 className="mb-3 text-lg font-semibold text-gray-700">Backend Health Status</h3>
-              {loading ? (
-                <p className="text-gray-600">Checking backend connection...</p>
-              ) : health ? (
-                <div className="space-y-2">
-                  <p className="text-sm">
-                    <span className="font-medium text-gray-700">Status:</span>{' '}
-                    <span className="font-semibold text-green-600">{health.status}</span>
-                  </p>
-                  <p className="text-sm">
-                    <span className="font-medium text-gray-700">Environment:</span>{' '}
-                    <span className="text-blue-600">{health.environment}</span>
-                  </p>
-                  <p className="text-sm">
-                    <span className="font-medium text-gray-700">Version:</span>{' '}
-                    <span className="text-gray-600">{health.version}</span>
-                  </p>
-                </div>
-              ) : (
-                <p className="text-red-600">Failed to connect to backend</p>
-              )}
-            </div>
-
-            <div className="border-t pt-6">
-              <h3 className="mb-3 text-lg font-semibold text-gray-700">Get Started</h3>
-              <ul className="space-y-2 text-gray-600">
-                <li className="flex items-start">
-                  <span className="mr-2 text-blue-500">"</span>
-                  <span>
-                    Edit backend code in{' '}
-                    <code className="rounded bg-gray-100 px-2 py-1 text-sm">backend/app</code>
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2 text-blue-500">"</span>
-                  <span>
-                    Edit frontend code in{' '}
-                    <code className="rounded bg-gray-100 px-2 py-1 text-sm">frontend/src</code>
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2 text-blue-500">"</span>
-                  <span>
-                    API documentation at{' '}
-                    <a href="/api/docs" className="text-blue-600 hover:underline">
-                      /api/docs
-                    </a>
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2 text-blue-500">"</span>
-                  <span>
-                    Run tests with{' '}
-                    <code className="rounded bg-gray-100 px-2 py-1 text-sm">
-                      ./scripts/run_ci_checks.sh
-                    </code>
-                  </span>
-                </li>
-              </ul>
-            </div>
+    <div className="min-h-screen bg-[#12141a] font-sans text-[#e8eaed]">
+      {/* Header */}
+      <header className="sticky top-0 z-[100] flex h-14 items-center justify-between border-b border-white/5 bg-[#12141a]/90 px-8 backdrop-blur-xl">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 text-sm font-black tracking-tight text-white">
+            M
           </div>
+          <span className="text-[17px] font-extrabold tracking-tight">
+            Mux<span className="text-indigo-400">arr</span>
+          </span>
         </div>
+        <div className="flex items-center gap-4 text-xs text-[#6b7280]">
+          <span>{stats?.total_media ?? 0} titles</span>
+          <span className="h-4 w-px bg-[#2a2d36]" />
+          <span>{stats?.total_audio_tracks ?? 0} audio</span>
+          <span>{stats?.total_subtitle_tracks ?? 0} subs</span>
+          <span className="h-4 w-px bg-[#2a2d36]" />
+          <span>{stats?.total_size_gb?.toFixed(1) ?? '0.0'} GB</span>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-[900px] px-6 pb-20 pt-6">
+        {selectedMediaId !== null ? (
+          <MediaDetailView mediaId={selectedMediaId} onBack={() => setSelectedMediaId(null)} />
+        ) : (
+          <MediaList onSelectMedia={(id) => setSelectedMediaId(id)} />
+        )}
       </div>
     </div>
   )

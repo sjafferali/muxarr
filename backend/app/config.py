@@ -12,10 +12,11 @@ class Settings(BaseSettings):
     """Application settings."""
 
     # Application
-    APP_NAME: str = Field(default="Python Web App Template", description="Application name")
+    APP_NAME: str = Field(default="Muxarr", description="Application name")
     APP_VERSION: str = Field(default="0.1.0", description="Application version")
     APP_DESCRIPTION: str = Field(
-        default="A template for Python web applications", description="Application description"
+        default="Media track manager for your *arr media library",
+        description="Application description",
     )
 
     # Environment
@@ -41,7 +42,7 @@ class Settings(BaseSettings):
 
     # SQLite specific settings
     SQLITE_DATABASE_PATH: str = Field(
-        default="./webapp.db", description="SQLite database file path"
+        default="./muxarr.db", description="SQLite database file path"
     )
 
     # Security
@@ -74,6 +75,19 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = Field(default=True, description="Enable rate limiting")
     RATE_LIMIT_REQUESTS: int = Field(default=100, description="Number of requests allowed")
     RATE_LIMIT_PERIOD: int = Field(default=60, description="Time period in seconds")
+
+    # Radarr
+    RADARR_URL: str = Field(default="", description="Radarr server URL")
+    RADARR_API_KEY: str = Field(default="", description="Radarr API key")
+
+    # Sonarr
+    SONARR_URL: str = Field(default="", description="Sonarr server URL")
+    SONARR_API_KEY: str = Field(default="", description="Sonarr API key")
+
+    # External tools
+    FFPROBE_PATH: str = Field(default="ffprobe", description="Path to ffprobe binary")
+    MKVPROPEDIT_PATH: str = Field(default="mkvpropedit", description="Path to mkvpropedit binary")
+    MKVMERGE_PATH: str = Field(default="mkvmerge", description="Path to mkvmerge binary")
 
     # Testing
     TESTING: bool = Field(default=False, description="Testing mode flag")

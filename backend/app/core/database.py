@@ -5,7 +5,7 @@ Database configuration and session management.
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
 
@@ -28,8 +28,10 @@ AsyncSessionLocal = async_sessionmaker(
     autoflush=False,
 )
 
+
 # Create base class for models
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

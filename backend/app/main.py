@@ -14,6 +14,7 @@ from app.api.health import router as health_router
 from app.api.v1.router import api_router as v1_router
 from app.config import settings
 from app.core.database import Base, engine
+from app.models.media import AudioTrack, Media, SubtitleTrack  # noqa: F401
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

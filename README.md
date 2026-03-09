@@ -1,165 +1,179 @@
-# Python Web App Template
+# Muxarr
 
-A production-ready template for building modern web applications with Python (FastAPI) backend and React (Vite) frontend, all containerized with Docker.
+A media track manager for your *arr media library. Muxarr integrates with Radarr and Sonarr to give you full visibility and control over the audio and subtitle tracks in your media files.
 
 ## Features
 
-### Backend (Python/FastAPI)
-- **FastAPI** framework with async support
-- **SQLAlchemy** ORM with PostgreSQL and SQLite support
-- **Alembic** database migrations (auto-run on startup)
-- **Poetry** for dependency management
-- **JWT authentication** ready to implement
-- **Pydantic** for data validation
-- **Structured logging** with structlog
-- **Health check endpoints**
-- **CORS configuration**
-- **Rate limiting** support
-- **Environment-based configuration**
-
-### Frontend (React/Vite)
-- **React 18** with TypeScript
-- **Vite** for fast development and building
-- **React Query** for server state management
-- **React Router** for navigation
-- **Tailwind CSS** for styling
-- **Axios** for API calls
-- **React Hook Form** for forms
-- **Hot Module Replacement** for development
-- **ESLint** and **Prettier** configured
-
-### DevOps & CI/CD
-- **Single Docker image** containing both frontend and backend
-- **GitHub Actions** CI/CD pipeline
-- **Automated tests** on every commit
-- **Docker Hub** integration
-- **Local CI script** that mirrors GitHub Actions
-- **Auto-fixing** for common linting issues
-- **Multi-stage Docker builds** for optimized images
-- **nginx** reverse proxy included
-- **Supervisor** for process management
+- **Library sync** -- imports movies from Radarr and series from Sonarr
+- **Track analysis** -- probes media files with ffprobe to list all audio and subtitle tracks with codec, language, channel layout, and bitrate details
+- **Set default tracks** -- change the default audio or subtitle track in-place using mkvpropedit (no remuxing required)
+- **Remove tracks** -- strip unwanted audio or subtitle tracks by remuxing with mkvmerge
+- **Dark-themed UI** -- clean, responsive interface for browsing your library and managing tracks
+- **Search and filter** -- find media by title, filter by movies or shows
+- **Library stats** -- total titles, track counts, and library size at a glance
 
 ## Quick Start
 
+### Docker Compose (Recommended)
+
+1. Create a `docker-compose.yml`:
+
+```yaml
+services:
+  muxarr:
+    image: sjafferali/muxarr:latest
+    container_name: muxarr
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_TYPE=sqlite
+      - SQLITE_DATABASE_PATH=/app/data/muxarr.db
+      - RADARR_URL=http://radarr:7878
+      - RADARR_API_KEY=your-radarr-api-key
+      - SONARR_URL=http://sonarr:8989
+      - SONARR_API_KEY=your-sonarr-api-key
+      - SECRET_KEY=generate-a-random-string-here
+    restart: unless-stopped
+    volumes:
+      - muxarr_data:/app/data
+      - /path/to/your/media:/media  # mount your media library
+
+volumes:
+  muxarr_data:
+```
+
+2. Start the container:
+
+```bash
+docker compose up -d
+```
+
+3. Open http://localhost:8080 and click **Sync** to import your library.
+
+### Docker Run
+
+```bash
+docker run -d \
+  --name muxarr \
+  -p 8080:8080 \
+  -e RADARR_URL=http://radarr:7878 \
+  -e RADARR_API_KEY=your-radarr-api-key \
+  -e SONARR_URL=http://sonarr:8989 \
+  -e SONARR_API_KEY=your-sonarr-api-key \
+  -e SECRET_KEY=generate-a-random-string-here \
+  -v muxarr_data:/app/data \
+  -v /path/to/your/media:/media \
+  sjafferali/muxarr:latest
+```
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `RADARR_URL` | _(empty)_ | Radarr server URL (e.g., `http://radarr:7878`) |
+| `RADARR_API_KEY` | _(empty)_ | Radarr API key (Settings > General in Radarr) |
+| `SONARR_URL` | _(empty)_ | Sonarr server URL (e.g., `http://sonarr:8989`) |
+| `SONARR_API_KEY` | _(empty)_ | Sonarr API key (Settings > General in Sonarr) |
+| `DATABASE_TYPE` | `sqlite` | Database type (`sqlite` or `postgresql`) |
+| `SQLITE_DATABASE_PATH` | `./muxarr.db` | SQLite database file path |
+| `SECRET_KEY` | _(insecure default)_ | Secret key for the application -- generate a random string for production |
+| `WORKERS` | `1` | Number of uvicorn worker processes |
+| `FFPROBE_PATH` | `ffprobe` | Path to ffprobe binary (included in Docker image) |
+| `MKVPROPEDIT_PATH` | `mkvpropedit` | Path to mkvpropedit binary (included in Docker image) |
+| `MKVMERGE_PATH` | `mkvmerge` | Path to mkvmerge binary (included in Docker image) |
+| `CORS_ORIGINS` | `["http://localhost:3000","http://localhost:5173"]` | Allowed CORS origins |
+| `ENVIRONMENT` | `development` | Environment name |
+| `PRODUCTION` | `false` | Production mode (disables API docs) |
+| `DEBUG` | `true` | Debug mode |
+| `LOG_LEVEL` | `INFO` | Logging level |
+
+### PostgreSQL (Optional)
+
+For larger libraries, you can use PostgreSQL instead of SQLite:
+
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_TYPE` | `sqlite` | Set to `postgresql` |
+| `POSTGRES_HOST` | `localhost` | PostgreSQL host |
+| `POSTGRES_PORT` | `5432` | PostgreSQL port |
+| `POSTGRES_USER` | `postgres` | PostgreSQL user |
+| `POSTGRES_PASSWORD` | `postgres` | PostgreSQL password |
+| `POSTGRES_DB` | `webapp` | PostgreSQL database name |
+
+### Volume Mounts
+
+| Path | Purpose |
+|---|---|
+| `/app/data` | Database storage (SQLite) |
+| `/media` (or your choice) | Your media library -- must match the paths Radarr/Sonarr report for media files |
+
+**Important:** The media volume mount path must match what Radarr/Sonarr report as file paths. If Radarr says a movie is at `/movies/Movie Name/movie.mkv`, mount your movies directory to `/movies` in the Muxarr container.
+
+## How It Works
+
+1. **Sync** -- Muxarr calls the Radarr/Sonarr APIs to discover your media library (titles, posters, quality info)
+2. **Probe** -- Each media file is scanned with `ffprobe` to extract audio and subtitle track metadata
+3. **Browse** -- The web UI displays your library with track counts and lets you drill into individual titles
+4. **Manage** -- Set default tracks (uses `mkvpropedit`, instant, no remux) or remove tracks (uses `mkvmerge`, remuxes the file)
+
+## Local Development
+
 ### Prerequisites
-- Docker and Docker Compose
-- Python 3.11+ (for local development)
-- Node.js 20+ (for local development)
-- Poetry (for Python dependency management)
 
-### Using Docker Compose (Recommended)
+- Python 3.11+
+- Node.js 20+
+- Poetry
+- ffprobe, mkvpropedit, mkvmerge (from ffmpeg and mkvtoolnix packages)
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/your-app-name.git
-cd your-app-name
-```
+### Backend
 
-2. Copy the environment file:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-3. Build and run with Docker Compose:
-```bash
-docker-compose up --build
-```
-
-The application will be available at:
-- Full application: http://localhost:8080
-- API documentation: http://localhost:8080/api/docs
-- API health check: http://localhost:8080/api/health
-
-### Local Development
-
-#### Backend Setup
-
-1. Install Poetry:
-```bash
-curl -sSL https://install.python-poetry.org | python3 -
-```
-
-2. Install backend dependencies:
 ```bash
 poetry install
-```
-
-3. Run database migrations:
-```bash
 cd backend
-alembic upgrade head
+poetry run uvicorn app.main:app --reload --port 8000
 ```
 
-4. Start the backend:
-```bash
-poetry run uvicorn backend.app.main:app --reload --port 8000
-```
+### Frontend
 
-#### Frontend Setup
-
-1. Install frontend dependencies:
 ```bash
 cd frontend
 npm install
-```
-
-2. Start the frontend development server:
-```bash
 npm run dev
 ```
 
-The frontend will be available at http://localhost:5173
+The frontend dev server runs at http://localhost:5173 and proxies API requests to the backend at http://localhost:8000.
 
-### Development with Docker Compose
-
-For development with hot-reloading:
+### Running Tests
 
 ```bash
-docker-compose -f docker-compose.dev.yml up
-```
-
-This will:
-- Run the backend with auto-reload at http://localhost:8000
-- Run the frontend with HMR at http://localhost:5173
-- Start PostgreSQL database
-- Start Adminer at http://localhost:8081 for database management
-
-## Running Tests
-
-### Local CI Checks
-
-Run all CI checks locally (tests, linting, type checking):
-
-```bash
+# All CI checks
 ./scripts/run_ci_checks.sh
-```
 
-Options:
-- `--skip-tests`: Skip running tests
-- `--skip-lint`: Skip linting checks
-- `--include-docker`: Include Docker build test
-- `--no-auto-fix`: Disable automatic fixes
-- `--frontend-only`: Run only frontend checks
-- `--backend-only`: Run only backend checks
-- `--postgres`: Use PostgreSQL for tests (requires Docker)
-
-### Backend Tests
-
-```bash
+# Backend tests only
 poetry run pytest
-# With coverage
-poetry run pytest --cov=backend/app --cov-report=html
+
+# Frontend type check + lint + build
+cd frontend && npm run type-check && npm run lint && npm run build
 ```
 
-### Frontend Tests
+## API
 
-```bash
-cd frontend
-npm run type-check
-npm run lint
-npm run build
-```
+When running in development mode, interactive API docs are available at `/api/docs`.
+
+Key endpoints:
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/v1/media` | List media (supports `?media_type=movie&search=term`) |
+| `GET` | `/api/v1/media/stats` | Library statistics |
+| `GET` | `/api/v1/media/{id}` | Media detail with all tracks |
+| `POST` | `/api/v1/media/sync` | Sync from Radarr/Sonarr |
+| `POST` | `/api/v1/media/{id}/tracks/audio/{track_id}/default` | Set default audio track |
+| `POST` | `/api/v1/media/{id}/tracks/subtitle/{track_id}/default` | Set default subtitle track |
+| `DELETE` | `/api/v1/media/{id}/tracks/audio/{track_id}` | Remove audio track |
+| `DELETE` | `/api/v1/media/{id}/tracks/subtitle/{track_id}` | Remove subtitle track |
 
 ## Project Structure
 
@@ -167,156 +181,70 @@ npm run build
 .
 ├── backend/
 │   ├── app/
-│   │   ├── api/          # API endpoints
-│   │   ├── core/         # Core functionality (database, security)
-│   │   ├── models/       # SQLAlchemy models
-│   │   ├── services/     # Business logic
-│   │   ├── utils/        # Utility functions
-│   │   ├── config.py     # Configuration management
-│   │   └── main.py       # FastAPI application
-│   ├── tests/            # Backend tests
-│   └── alembic/          # Database migrations
+│   │   ├── api/v1/endpoints/  # API route handlers
+│   │   ├── core/              # Database setup
+│   │   ├── models/            # SQLAlchemy models (Media, AudioTrack, SubtitleTrack)
+│   │   ├── schemas/           # Pydantic response schemas
+│   │   ├── services/          # Radarr, Sonarr, ffprobe, mkvtoolnix integrations
+│   │   ├── config.py          # Settings
+│   │   └── main.py            # FastAPI app
+│   ├── tests/
+│   └── alembic/               # Database migrations
 ├── frontend/
 │   ├── src/
-│   │   ├── components/   # React components
-│   │   ├── pages/        # Page components
-│   │   ├── services/     # API services
-│   │   ├── hooks/        # Custom hooks
-│   │   ├── utils/        # Utility functions
-│   │   ├── App.tsx       # Main application component
-│   │   └── main.tsx      # Application entry point
-│   └── public/           # Static assets
-├── deployment/
-│   ├── nginx/            # nginx configuration
-│   ├── supervisor/       # Supervisor configuration
-│   └── scripts/          # Deployment scripts
-├── scripts/
-│   └── run_ci_checks.sh  # Local CI script
-├── .github/
-│   └── workflows/        # GitHub Actions workflows
-├── docker-compose.yml     # Production Docker Compose
-├── docker-compose.dev.yml # Development Docker Compose
-├── Dockerfile             # Multi-stage Dockerfile
-├── pyproject.toml         # Python dependencies and configuration
-└── README.md              # This file
+│   │   ├── api/               # API client functions
+│   │   ├── components/        # React components
+│   │   ├── types/             # TypeScript interfaces
+│   │   ├── App.tsx
+│   │   └── main.tsx
+├── deployment/                # nginx, supervisor, entrypoint configs
+├── docker-compose.yml         # Production deployment
+├── Dockerfile                 # Multi-stage build
+└── pyproject.toml             # Python dependencies
 ```
 
-## GitHub Actions Setup
+## GitHub Actions CI/CD
 
-To enable CI/CD with GitHub Actions:
+The workflow at `.github/workflows/main.yml` runs on every push to `main` and on version tags (`v*`). It runs tests, linting, and builds + pushes the Docker image.
 
-1. **Set up repository variables** in GitHub Settings → Secrets and variables → Actions:
-   - `DOCKER_IMAGE_NAME`: Your Docker Hub image name (e.g., `yourusername/your-app-name`)
+### Required Setup
 
-2. **Set up secrets**:
-   - `DOCKERHUB_USERNAME`: Your Docker Hub username
-   - `DOCKERHUB_TOKEN`: Your Docker Hub access token
-   - `CODECOV_TOKEN` (optional): For coverage reports
-   - `WEBHOOK_URL` (optional): For deployment notifications
-   - `WEBHOOK_SECRET` (optional): Webhook secret
+Configure these in your GitHub repository under **Settings > Secrets and variables > Actions**:
 
-The CI/CD pipeline will:
-- Run all tests on every push
-- Check code quality with linters
-- Build Docker images on main branch
-- Push to Docker Hub with proper tags
-- Support semantic versioning with git tags
+**Repository Variables** (Settings > Variables > New repository variable):
 
-## Configuration
+| Variable | Value |
+|---|---|
+| `DOCKER_IMAGE_NAME` | `sjafferali/muxarr` |
 
-### Environment Variables
+**Repository Secrets** (Settings > Secrets > New repository secret):
 
-Key environment variables (see `.env.example` for all options):
+| Secret | Description |
+|---|---|
+| `DOCKERHUB_USERNAME` | Your Docker Hub username |
+| `DOCKERHUB_TOKEN` | Docker Hub access token (create at https://hub.docker.com/settings/security) |
 
-- `DATABASE_TYPE`: `sqlite` or `postgresql`
-- `SECRET_KEY`: Secret key for JWT tokens (generate a secure one for production)
-- `POSTGRES_*`: PostgreSQL connection settings
-- `CORS_ORIGINS`: Allowed CORS origins
-- `RATE_LIMIT_*`: Rate limiting configuration
+**Optional Secrets:**
 
-### Database
+| Secret | Description |
+|---|---|
+| `CODECOV_TOKEN` | For uploading coverage reports to Codecov |
+| `WEBHOOK_URL` | Webhook URL for deployment notifications |
+| `WEBHOOK_SECRET` | Webhook secret for deployment notifications |
 
-The template supports both PostgreSQL and SQLite:
-- PostgreSQL for production
-- SQLite for development/testing
+### What the Pipeline Does
 
-Migrations run automatically on container startup.
-
-### Adding New Features
-
-#### Backend Endpoint
-1. Create a new router in `backend/app/api/v1/endpoints/`
-2. Add the router to `backend/app/api/v1/router.py`
-3. Create models in `backend/app/models/`
-4. Create services in `backend/app/services/`
-5. Add tests in `backend/tests/`
-
-#### Frontend Page
-1. Create components in `frontend/src/components/`
-2. Create pages in `frontend/src/pages/`
-3. Add routes to your router configuration
-4. Create API services in `frontend/src/services/`
-
-## Production Deployment
-
-### Using Docker
-
-Build the production image:
-
-```bash
-docker build -t your-app-name:latest .
-```
-
-Run in production:
-
-```bash
-docker run -d \
-  -p 8080:8080 \
-  --env-file .env \
-  --name your-app-name \
-  your-app-name:latest
-```
-
-### Using Docker Compose
-
-1. Update the image name in `docker-compose.yml`
-2. Set production environment variables
-3. Run:
-
-```bash
-docker-compose up -d
-```
-
-### Health Checks
-
-The application provides health check endpoints:
-- `/api/health`: Basic health check
-- `/api/health/ready`: Readiness check (includes database connectivity)
-
-## Security Considerations
-
-- Always use strong `SECRET_KEY` in production
-- Enable HTTPS in production (configure nginx)
-- Keep dependencies updated
-- Use environment variables for sensitive data
-- Enable rate limiting
-- Configure CORS properly
-- Use PostgreSQL in production (not SQLite)
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting: `./scripts/run_ci_checks.sh`
-5. Commit your changes
-6. Push to your fork
-7. Create a pull request
+1. **Backend tests** -- runs pytest against a PostgreSQL service container
+2. **Frontend tests** -- TypeScript check, ESLint, production build
+3. **Python linting** -- ruff and mypy
+4. **Dependency security check** -- npm audit
+5. **Docker build** -- builds the multi-stage Docker image
+6. **Docker push** -- pushes to Docker Hub with tags:
+   - `latest` (main branch)
+   - `main` (branch name)
+   - `v1.0.0`, `v1.0`, `v1` (semantic version tags)
+   - `main-abc1234` (branch + short SHA)
 
 ## License
 
-MIT License - feel free to use this template for your projects!
-
-## Support
-
-For issues and questions, please open an issue on GitHub.
+MIT
