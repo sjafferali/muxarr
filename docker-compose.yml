@@ -23,9 +23,6 @@ services:
       # Sonarr integration
       - SONARR_URL=${SONARR_URL:-}
       - SONARR_API_KEY=${SONARR_API_KEY:-}
-
-      # CORS
-      - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost:8080"]}
     restart: unless-stopped
     volumes:
       - muxarr_data:/app/data

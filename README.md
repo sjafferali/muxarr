@@ -83,10 +83,6 @@ docker run -d \
 | `FFPROBE_PATH` | `ffprobe` | Path to ffprobe binary (included in Docker image) |
 | `MKVPROPEDIT_PATH` | `mkvpropedit` | Path to mkvpropedit binary (included in Docker image) |
 | `MKVMERGE_PATH` | `mkvmerge` | Path to mkvmerge binary (included in Docker image) |
-| `CORS_ORIGINS` | `["http://localhost:3000","http://localhost:5173"]` | Allowed CORS origins |
-| `ENVIRONMENT` | `development` | Environment name |
-| `PRODUCTION` | `false` | Production mode (disables API docs) |
-| `DEBUG` | `true` | Debug mode |
 | `LOG_LEVEL` | `INFO` | Logging level |
 
 ### PostgreSQL (Optional)

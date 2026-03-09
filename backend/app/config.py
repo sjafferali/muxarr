@@ -58,12 +58,6 @@ class Settings(BaseSettings):
     )
     PASSWORD_MIN_LENGTH: int = Field(default=8, description="Minimum password length")
 
-    # CORS
-    CORS_ORIGINS: list[str] = Field(
-        default=["http://localhost:3000", "http://localhost:5173"],
-        description="Allowed CORS origins",
-    )
-
     # Logging
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
     LOG_FORMAT: str = Field(
