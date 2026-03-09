@@ -44,21 +44,10 @@ else
     fi
 fi
 
-# Run database migrations
-echo "Running database migrations..."
-cd /app/backend
-
-# Ensure versions directory exists
-mkdir -p alembic/versions
-
-# Create initial migration if none exist
-if [ -z "$(ls -A alembic/versions/*.py 2>/dev/null)" ]; then
-    echo "Creating initial migration..."
-    alembic revision --autogenerate -m "Initial migration" || true
-fi
-
-# Run migrations
+# Apply any pre-built database migrations
 echo "Applying database migrations..."
+cd /app/backend
+mkdir -p alembic/versions
 alembic upgrade head || echo "Migration completed or no changes needed"
 
 # Start supervisord
