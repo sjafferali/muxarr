@@ -52,7 +52,8 @@ class TrackManager:
                     f"flag-default={flag}",
                 )
                 if rc != 0:
-                    raise RuntimeError(f"mkvpropedit failed: {stderr}")
+                    detail = stderr.strip() or stdout.strip()
+                    raise RuntimeError(f"mkvpropedit failed: {detail}")
 
         logger.info(f"Set default audio track (stream {stream_index}) in {file_path}")
 
@@ -73,7 +74,8 @@ class TrackManager:
                     f"flag-default={flag}",
                 )
                 if rc != 0:
-                    raise RuntimeError(f"mkvpropedit failed: {stderr}")
+                    detail = stderr.strip() or stdout.strip()
+                    raise RuntimeError(f"mkvpropedit failed: {detail}")
 
         logger.info(f"Set default subtitle track (stream {stream_index}) in {file_path}")
 
@@ -121,7 +123,8 @@ class TrackManager:
 
             if rc not in (0, 1):  # mkvmerge returns 1 for warnings
                 os.unlink(temp_path)
-                raise RuntimeError(f"mkvmerge failed: {stderr}")
+                detail = stderr.strip() or stdout.strip()
+                raise RuntimeError(f"mkvmerge failed: {detail}")
 
             # Replace original with new file
             shutil.move(temp_path, file_path)
@@ -147,7 +150,8 @@ class TrackManager:
         )
 
         if rc != 0:
-            raise RuntimeError(f"mkvmerge identify failed: {stderr}")
+            detail = stderr.strip() or stdout.strip()
+            raise RuntimeError(f"mkvmerge identify failed: {detail}")
 
         import json
 
