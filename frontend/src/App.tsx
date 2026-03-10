@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchStats } from './api/media'
 import MediaList from './components/MediaList'
 import MediaDetailView from './components/MediaDetailView'
+import SeriesDetailView from './components/SeriesDetailView'
 
 function App() {
   const { data: stats } = useQuery({
@@ -38,6 +39,7 @@ function App() {
       <div className="mx-auto max-w-[900px] px-6 pb-20 pt-6">
         <Routes>
           <Route path="/" element={<MediaList />} />
+          <Route path="/series/:id" element={<SeriesDetailView />} />
           <Route path="/media/:id" element={<MediaDetailView />} />
         </Routes>
       </div>

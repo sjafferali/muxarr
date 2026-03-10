@@ -124,7 +124,7 @@ const MediaDetailView: React.FC = () => {
         onClick={() => navigate(-1)}
         className="mb-5 inline-flex cursor-pointer items-center gap-2 border-none bg-none py-2 text-[13px] font-semibold text-[#9ca3af] transition-colors hover:text-[#e8eaed]"
       >
-        <IconBack /> Back to Library
+        <IconBack /> {mediaId.startsWith('sonarr_ef_') ? 'Back to Series' : 'Back to Library'}
       </button>
 
       {/* Hero */}
@@ -150,7 +150,7 @@ const MediaDetailView: React.FC = () => {
               }`}
             >
               {media.media_type === 'movie' ? <IconFilm /> : <IconTv />}
-              {media.media_type.toUpperCase()}
+              {media.media_type === 'episode' ? 'EPISODE' : media.media_type.toUpperCase()}
             </span>
             <span className="text-[11px] font-semibold text-[#6b7280]">{media.rating}</span>
           </div>

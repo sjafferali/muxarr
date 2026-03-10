@@ -14,7 +14,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, index }) => {
 
   return (
     <Link
-      to={`/media/${media.id}`}
+      to={media.media_type === 'show' ? `/series/${media.id}` : `/media/${media.id}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={`animate-fadeSlideIn flex cursor-pointer gap-4 rounded-xl p-4 no-underline transition-all duration-200 ease-[cubic-bezier(.4,0,.2,1)] ${

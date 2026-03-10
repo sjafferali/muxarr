@@ -40,7 +40,7 @@ export interface MediaDetail {
   id: string
   title: string
   year: number | null
-  media_type: 'movie' | 'show'
+  media_type: 'movie' | 'show' | 'episode'
   rating: string | null
   poster_url: string | null
   quality: string | null
@@ -52,6 +52,22 @@ export interface MediaDetail {
   file_path: string | null
   audio_tracks: AudioTrack[]
   subtitle_tracks: SubtitleTrack[]
+}
+
+export interface EpisodeFile {
+  id: string
+  episode_file_id: number
+  season_number: number
+  episode_numbers: number[]
+  episode_title: string
+  file_path: string
+  size: string
+  size_bytes: number
+  quality: string | null
+  video_codec: string | null
+  container: string | null
+  audio_track_count: number
+  subtitle_track_count: number
 }
 
 export interface LibraryStats {

@@ -59,6 +59,22 @@ class MediaListResponse(BaseModel):
     subtitle_track_count: int
 
 
+class EpisodeFileResponse(BaseModel):
+    id: str
+    episode_file_id: int
+    season_number: int
+    episode_numbers: list[int]
+    episode_title: str
+    file_path: str
+    size: str
+    size_bytes: float
+    quality: str | None
+    video_codec: str | None
+    container: str | None
+    audio_track_count: int
+    subtitle_track_count: int
+
+
 class StatsResponse(BaseModel):
     total_media: int
     total_movies: int

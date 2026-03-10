@@ -62,12 +62,16 @@ async def readiness_check() -> dict[str, object]:
 
     return {
         "status": "ready" if ready else "not_ready",
-        "radarr": "connected"
-        if radarr_ok
-        else ("not_configured" if not radarr.configured else "disconnected"),
-        "sonarr": "connected"
-        if sonarr_ok
-        else ("not_configured" if not sonarr.configured else "disconnected"),
+        "radarr": (
+            "connected"
+            if radarr_ok
+            else ("not_configured" if not radarr.configured else "disconnected")
+        ),
+        "sonarr": (
+            "connected"
+            if sonarr_ok
+            else ("not_configured" if not sonarr.configured else "disconnected")
+        ),
         "environment": settings.ENVIRONMENT,
         "version": settings.APP_VERSION,
     }

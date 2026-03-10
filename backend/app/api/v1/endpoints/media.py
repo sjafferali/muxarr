@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas.media import (
     AudioTrackResponse,
+    EpisodeFileResponse,
     MediaListResponse,
     MediaResponse,
     StatsResponse,
@@ -120,6 +121,19 @@ async def _resolve_media(media_id: str) -> tuple[str, str]:
 
     Raises HTTPException if not found.
     """
+    # Handle episode file IDs: sonarr_ef_{episodeFileId}
+    if media_id.startswith("sonarr_ef_"):
+        ef_id_str = media_id[len("sonarr_ef_") :]
+        try:
+            ef_id = int(ef_id_str)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid media ID format") from None
+        sonarr = SonarrService()
+        ef = await sonarr.get_episode_file(ef_id)
+        if not ef:
+            raise HTTPException(status_code=404, detail="Episode file not found")
+        return ef.file_path, ef.episode_title
+
     parts = media_id.split("_", 1)
     if len(parts) != 2:
         raise HTTPException(status_code=400, detail="Invalid media ID format")
@@ -189,23 +203,46 @@ async def get_stats() -> Any:
     )
 
 
+@router.get("/{media_id}/episodes", response_model=list[EpisodeFileResponse])
+async def list_episodes(media_id: str) -> Any:
+    """List all episode files for a series."""
+    if not media_id.startswith("sonarr_"):
+        raise HTTPException(status_code=400, detail="Episodes only available for shows")
+
+    try:
+        series_id = int(media_id.split("_", 1)[1])
+    except (ValueError, IndexError):
+        raise HTTPException(status_code=400, detail="Invalid media ID format") from None
+
+    sonarr = SonarrService()
+    episode_files = await sonarr.get_episode_files_for_series(series_id)
+
+    return [
+        EpisodeFileResponse(
+            id=f"sonarr_ef_{ef.episode_file_id}",
+            episode_file_id=ef.episode_file_id,
+            season_number=ef.season_number,
+            episode_numbers=ef.episode_numbers,
+            episode_title=ef.episode_title,
+            file_path=ef.file_path,
+            size=_format_size(ef.size_bytes),
+            size_bytes=ef.size_bytes,
+            quality=ef.quality,
+            video_codec=ef.video_codec,
+            container=ef.container,
+            audio_track_count=ef.audio_stream_count,
+            subtitle_track_count=ef.subtitle_count,
+        )
+        for ef in episode_files
+    ]
+
+
 @router.get("/{media_id}", response_model=MediaResponse)
 async def get_media(media_id: str) -> Any:
     """Get media details with all tracks."""
     from app.services.media_probe import MediaProbe
 
-    parts = media_id.split("_", 1)
-    if len(parts) != 2:
-        raise HTTPException(status_code=400, detail="Invalid media ID format")
-
-    arr_type, arr_id_str = parts
-    try:
-        arr_id = int(arr_id_str)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid media ID format") from None
-
     file_path: str
-    media_id_str = media_id
     year: int | None
     rating: str | None
     poster_url: str | None
@@ -218,42 +255,93 @@ async def get_media(media_id: str) -> Any:
     media_type_str: str
     file_path_display: str | None
 
-    if arr_type == "radarr":
-        radarr = RadarrService()
-        movie = await radarr.get_movie(arr_id)
-        if not movie:
-            raise HTTPException(status_code=404, detail="Media not found")
-        title = movie.title
-        year = movie.year or None
-        media_type_str = "movie"
-        rating = movie.rating or None
-        poster_url = movie.poster_url
-        quality = movie.quality
-        size_bytes = movie.size_bytes
-        runtime_str = _format_runtime(movie.runtime)
-        video_codec = movie.video_codec
-        container = movie.container
-        file_path = movie.file_path
-        file_path_display = movie.file_path
-    elif arr_type == "sonarr":
+    # Handle episode file IDs: sonarr_ef_{episodeFileId}
+    if media_id.startswith("sonarr_ef_"):
+        ef_id_str = media_id[len("sonarr_ef_") :]
+        try:
+            ef_id = int(ef_id_str)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid media ID format") from None
+
         sonarr = SonarrService()
-        show = await sonarr.get_series_item(arr_id)
-        if not show:
-            raise HTTPException(status_code=404, detail="Media not found")
-        title = show.title
-        year = show.year or None
-        media_type_str = "show"
-        rating = show.rating or None
-        poster_url = show.poster_url
-        quality = show.quality
-        size_bytes = show.size_bytes
-        runtime_str = f"{show.episode_count} Episodes"
-        video_codec = show.video_codec
-        container = show.container
-        file_path = show.episode_file_path
-        file_path_display = show.episode_file_path
+        ef = await sonarr.get_episode_file(ef_id)
+        if not ef:
+            raise HTTPException(status_code=404, detail="Episode file not found")
+
+        # Fetch parent series for poster/year/rating
+        series = await sonarr.get_series_item(ef.series_id)
+
+        # Build episode label like "S01E02" or "S01E01-E02"
+        if len(ef.episode_numbers) == 1:
+            ep_label = f"S{ef.season_number:02d}E{ef.episode_numbers[0]:02d}"
+        else:
+            ep_label = (
+                f"S{ef.season_number:02d}E{ef.episode_numbers[0]:02d}-E{ef.episode_numbers[-1]:02d}"
+            )
+
+        title = (
+            f"{series.title} - {ep_label} - {ef.episode_title}"
+            if series
+            else f"{ep_label} - {ef.episode_title}"
+        )
+        year = series.year if series else None
+        media_type_str = "episode"
+        rating = series.rating if series else None
+        poster_url = series.poster_url if series else None
+        quality = ef.quality
+        size_bytes = ef.size_bytes
+        runtime_str = ep_label
+        video_codec = ef.video_codec
+        container = ef.container
+        file_path = ef.file_path
+        file_path_display = ef.file_path
     else:
-        raise HTTPException(status_code=400, detail="Invalid media ID format")
+        parts = media_id.split("_", 1)
+        if len(parts) != 2:
+            raise HTTPException(status_code=400, detail="Invalid media ID format")
+
+        arr_type, arr_id_str = parts
+        try:
+            arr_id = int(arr_id_str)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid media ID format") from None
+
+        if arr_type == "radarr":
+            radarr = RadarrService()
+            movie = await radarr.get_movie(arr_id)
+            if not movie:
+                raise HTTPException(status_code=404, detail="Media not found")
+            title = movie.title
+            year = movie.year or None
+            media_type_str = "movie"
+            rating = movie.rating or None
+            poster_url = movie.poster_url
+            quality = movie.quality
+            size_bytes = movie.size_bytes
+            runtime_str = _format_runtime(movie.runtime)
+            video_codec = movie.video_codec
+            container = movie.container
+            file_path = movie.file_path
+            file_path_display = movie.file_path
+        elif arr_type == "sonarr":
+            sonarr = SonarrService()
+            show = await sonarr.get_series_item(arr_id)
+            if not show:
+                raise HTTPException(status_code=404, detail="Media not found")
+            title = show.title
+            year = show.year or None
+            media_type_str = "show"
+            rating = show.rating or None
+            poster_url = show.poster_url
+            quality = show.quality
+            size_bytes = show.size_bytes
+            runtime_str = f"{show.episode_count} Episodes"
+            video_codec = show.video_codec
+            container = show.container
+            file_path = show.episode_file_path
+            file_path_display = show.episode_file_path
+        else:
+            raise HTTPException(status_code=400, detail="Invalid media ID format")
 
     # Probe the file for track details
     probe = MediaProbe()
@@ -262,15 +350,13 @@ async def get_media(media_id: str) -> Any:
     audio_tracks: list[AudioTrackResponse] = []
     subtitle_tracks: list[SubtitleTrackResponse] = []
     if probe_data:
-        audio_tracks = [
-            AudioTrackResponse(**t) for t in probe.parse_audio_tracks(probe_data)
-        ]
+        audio_tracks = [AudioTrackResponse(**t) for t in probe.parse_audio_tracks(probe_data)]
         subtitle_tracks = [
             SubtitleTrackResponse(**t) for t in probe.parse_subtitle_tracks(probe_data)
         ]
 
     return MediaResponse(
-        id=media_id_str,
+        id=media_id,
         title=title,
         year=year,
         media_type=media_type_str,
