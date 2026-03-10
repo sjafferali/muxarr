@@ -80,7 +80,7 @@ const TrackRow: React.FC<TrackRowProps> = ({
           </span>
         ) : (
           <button
-            onClick={() => onSetDefault(track.id)}
+            onClick={() => onSetDefault(track.stream_index)}
             title="Set as default"
             className={`flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.04] text-[#6b7280] transition-all duration-150 hover:bg-white/[0.08] hover:text-[#9ca3af] ${
               hovered ? 'opacity-100' : 'opacity-40'

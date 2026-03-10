@@ -32,7 +32,6 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
-    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
@@ -53,7 +52,6 @@ FROM python:3.11-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
-    libpq5 \
     curl \
     nginx \
     supervisor \
@@ -71,9 +69,6 @@ COPY --from=backend-builder /usr/local/bin /usr/local/bin
 # Copy backend application
 COPY --from=backend-builder /app/backend ./backend
 COPY --from=backend-builder /app/pyproject.toml ./
-COPY backend/alembic.ini ./backend/
-COPY backend/alembic ./backend/alembic
-
 # Copy frontend build
 COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
 

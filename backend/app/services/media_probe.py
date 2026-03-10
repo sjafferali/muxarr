@@ -5,14 +5,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import TYPE_CHECKING, Any
-
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any
 
 from app.config import settings
-
-if TYPE_CHECKING:
-    from app.models.media import Media
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +159,7 @@ class MediaProbe:
             logger.error(f"Failed to probe {file_path}: {e}")
             return None
 
-    def parse_audio_tracks(self, probe_data: dict[str, Any]) -> list[dict[str, object]]:
+    def parse_audio_tracks(self, probe_data: dict[str, Any]) -> list[dict[str, Any]]:
         """Parse audio tracks from ffprobe output."""
         tracks = []
         for stream in probe_data.get("streams", []):
@@ -203,7 +198,7 @@ class MediaProbe:
 
         return tracks
 
-    def parse_subtitle_tracks(self, probe_data: dict[str, Any]) -> list[dict[str, object]]:
+    def parse_subtitle_tracks(self, probe_data: dict[str, Any]) -> list[dict[str, Any]]:
         """Parse subtitle tracks from ffprobe output."""
         tracks = []
         for stream in probe_data.get("streams", []):
@@ -233,27 +228,3 @@ class MediaProbe:
             )
 
         return tracks
-
-    async def rescan_media(self, db: AsyncSession, media: Media) -> None:
-        """Re-scan a media file and update track info in the database."""
-        from app.models.media import AudioTrack, SubtitleTrack
-
-        if not media.file_path:
-            return
-
-        probe_data = await self.probe_file(media.file_path)
-        if not probe_data:
-            return
-
-        # Delete existing tracks
-        from sqlalchemy import delete
-
-        await db.execute(delete(AudioTrack).where(AudioTrack.media_id == media.id))
-        await db.execute(delete(SubtitleTrack).where(SubtitleTrack.media_id == media.id))
-
-        # Add new tracks
-        for track_data in self.parse_audio_tracks(probe_data):
-            db.add(AudioTrack(media_id=media.id, **track_data))
-
-        for track_data in self.parse_subtitle_tracks(probe_data):
-            db.add(SubtitleTrack(media_id=media.id, **track_data))

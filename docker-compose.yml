@@ -5,10 +5,6 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # Database (SQLite is default, stored in /app/data)
-      - DATABASE_TYPE=sqlite
-      - SQLITE_DATABASE_PATH=/app/data/muxarr.db
-
       # User/group ID to match your media file ownership
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
@@ -26,10 +22,6 @@ services:
       - SONARR_API_KEY=${SONARR_API_KEY:-}
     restart: unless-stopped
     volumes:
-      - muxarr_data:/app/data
       # Mount your media library (read-only is fine for scanning,
       # but read-write is needed for track removal/default changes)
       # - /path/to/your/media:/media
-
-volumes:
-  muxarr_data:

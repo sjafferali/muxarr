@@ -2,14 +2,12 @@
 Health check endpoints.
 """
 
-from typing import Any
-
-from fastapi import APIRouter, Depends
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+import httpx
+from fastapi import APIRouter
 
 from app.config import settings
-from app.core.database import get_db
+from app.services.radarr import RadarrService
+from app.services.sonarr import SonarrService
 
 router = APIRouter()
 
@@ -27,27 +25,49 @@ async def health_check() -> dict[str, str]:
 
 
 @router.get("/health/ready")
-async def readiness_check(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+async def readiness_check() -> dict[str, object]:
     """
     Readiness check endpoint.
-    Verifies database connectivity.
+    Verifies Radarr/Sonarr connectivity.
     """
-    try:
-        # Test database connection
-        result = await db.execute(text("SELECT 1"))
-        result.scalar()
+    radarr_ok = False
+    sonarr_ok = False
 
-        return {
-            "status": "ready",
-            "database": "connected",
-            "environment": settings.ENVIRONMENT,
-            "version": settings.APP_VERSION,
-        }
-    except Exception as e:
-        return {
-            "status": "not_ready",
-            "database": "disconnected",
-            "error": str(e),
-            "environment": settings.ENVIRONMENT,
-            "version": settings.APP_VERSION,
-        }
+    radarr = RadarrService()
+    sonarr = SonarrService()
+
+    if radarr.configured:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(
+                    f"{radarr.base_url}/api/v3/system/status",
+                    headers=radarr._headers(),
+                )
+                radarr_ok = resp.status_code == 200
+        except Exception:
+            pass
+
+    if sonarr.configured:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(
+                    f"{sonarr.base_url}/api/v3/system/status",
+                    headers=sonarr._headers(),
+                )
+                sonarr_ok = resp.status_code == 200
+        except Exception:
+            pass
+
+    ready = (not radarr.configured or radarr_ok) and (not sonarr.configured or sonarr_ok)
+
+    return {
+        "status": "ready" if ready else "not_ready",
+        "radarr": "connected"
+        if radarr_ok
+        else ("not_configured" if not radarr.configured else "disconnected"),
+        "sonarr": "connected"
+        if sonarr_ok
+        else ("not_configured" if not sonarr.configured else "disconnected"),
+        "environment": settings.ENVIRONMENT,
+        "version": settings.APP_VERSION,
+    }

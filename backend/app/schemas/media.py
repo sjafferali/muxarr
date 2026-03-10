@@ -1,12 +1,9 @@
 """Pydantic schemas for media API responses."""
 
-from datetime import datetime
-
 from pydantic import BaseModel
 
 
 class AudioTrackResponse(BaseModel):
-    id: int
     stream_index: int
     language: str | None
     language_code: str | None
@@ -16,11 +13,8 @@ class AudioTrackResponse(BaseModel):
     is_default: bool
     title: str | None
 
-    model_config = {"from_attributes": True}
-
 
 class SubtitleTrackResponse(BaseModel):
-    id: int
     stream_index: int
     language: str | None
     language_code: str | None
@@ -29,11 +23,9 @@ class SubtitleTrackResponse(BaseModel):
     is_default: bool
     title: str | None
 
-    model_config = {"from_attributes": True}
-
 
 class MediaResponse(BaseModel):
-    id: int
+    id: str
     title: str
     year: int | None
     media_type: str
@@ -46,17 +38,12 @@ class MediaResponse(BaseModel):
     video_codec: str | None
     container: str | None
     file_path: str | None
-    arr_id: int | None
-    arr_type: str | None
-    last_scanned: datetime | None
     audio_tracks: list[AudioTrackResponse]
     subtitle_tracks: list[SubtitleTrackResponse]
 
-    model_config = {"from_attributes": True}
-
 
 class MediaListResponse(BaseModel):
-    id: int
+    id: str
     title: str
     year: int | None
     media_type: str
@@ -70,13 +57,6 @@ class MediaListResponse(BaseModel):
     container: str | None
     audio_track_count: int
     subtitle_track_count: int
-
-    model_config = {"from_attributes": True}
-
-
-class SyncResponse(BaseModel):
-    synced: int
-    errors: list[str]
 
 
 class StatsResponse(BaseModel):

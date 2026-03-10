@@ -13,14 +13,10 @@ from fastapi.responses import JSONResponse
 from app.api.health import router as health_router
 from app.api.v1.router import api_router as v1_router
 from app.config import settings
-from app.core.database import Base, engine
-from app.models.media import AudioTrack, Media, SubtitleTrack  # noqa: F401
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
-logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
 
 
 @asynccontextmanager
@@ -29,20 +25,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Lifespan context manager for FastAPI application.
     Handles startup and shutdown events.
     """
-    # Startup
     logger.info("Starting up application...")
-
-    # Create database tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
     logger.info("Application started successfully")
-
     yield
-
-    # Shutdown
     logger.info("Shutting down application...")
-    await engine.dispose()
 
 
 # Create FastAPI application

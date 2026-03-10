@@ -17,7 +17,7 @@ import ConfirmModal from './ConfirmModal'
 const MediaDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const mediaId = Number(id)
+  const mediaId = id!
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'audio' | 'subtitle'>('audio')
   const [confirm, setConfirm] = useState<{
@@ -30,7 +30,7 @@ const MediaDetailView: React.FC = () => {
   const { data: media, isLoading } = useQuery({
     queryKey: ['media', mediaId],
     queryFn: () => fetchMediaDetail(mediaId),
-    enabled: !isNaN(mediaId),
+    enabled: !!mediaId,
   })
 
   const invalidateMedia = () => {
@@ -40,7 +40,7 @@ const MediaDetailView: React.FC = () => {
   }
 
   const setDefaultAudioMutation = useMutation({
-    mutationFn: (trackId: number) => setDefaultAudioTrack(mediaId, trackId),
+    mutationFn: (streamIndex: number) => setDefaultAudioTrack(mediaId, streamIndex),
     onSuccess: () => {
       toast.success('Default audio track updated')
       invalidateMedia()
@@ -49,7 +49,7 @@ const MediaDetailView: React.FC = () => {
   })
 
   const setDefaultSubMutation = useMutation({
-    mutationFn: (trackId: number) => setDefaultSubtitleTrack(mediaId, trackId),
+    mutationFn: (streamIndex: number) => setDefaultSubtitleTrack(mediaId, streamIndex),
     onSuccess: () => {
       toast.success('Default subtitle track updated')
       invalidateMedia()
@@ -58,7 +58,7 @@ const MediaDetailView: React.FC = () => {
   })
 
   const removeAudioMutation = useMutation({
-    mutationFn: (trackId: number) => removeAudioTrack(mediaId, trackId),
+    mutationFn: (streamIndex: number) => removeAudioTrack(mediaId, streamIndex),
     onSuccess: () => {
       toast.success('Audio track removed')
       invalidateMedia()
@@ -67,7 +67,7 @@ const MediaDetailView: React.FC = () => {
   })
 
   const removeSubMutation = useMutation({
-    mutationFn: (trackId: number) => removeSubtitleTrack(mediaId, trackId),
+    mutationFn: (streamIndex: number) => removeSubtitleTrack(mediaId, streamIndex),
     onSuccess: () => {
       toast.success('Subtitle track removed')
       invalidateMedia()
@@ -81,7 +81,7 @@ const MediaDetailView: React.FC = () => {
       message: `Remove "${track.title}" from this media file? This action cannot be undone.`,
       danger: true,
       onConfirm: () => {
-        removeAudioMutation.mutate(track.id)
+        removeAudioMutation.mutate(track.stream_index)
         setConfirm(null)
       },
     })
@@ -93,7 +93,7 @@ const MediaDetailView: React.FC = () => {
       message: `Remove "${track.title}" from this media file? This action cannot be undone.`,
       danger: true,
       onConfirm: () => {
-        removeSubMutation.mutate(track.id)
+        removeSubMutation.mutate(track.stream_index)
         setConfirm(null)
       },
     })
@@ -232,14 +232,14 @@ const MediaDetailView: React.FC = () => {
         {/* Rows */}
         {tracks.map((track, i) => (
           <TrackRow
-            key={track.id}
+            key={track.stream_index}
             track={track}
             type={activeTab}
             isDefault={track.is_default}
             onSetDefault={
               activeTab === 'audio'
-                ? (id) => setDefaultAudioMutation.mutate(id)
-                : (id) => setDefaultSubMutation.mutate(id)
+                ? (streamIndex) => setDefaultAudioMutation.mutate(streamIndex)
+                : (streamIndex) => setDefaultSubMutation.mutate(streamIndex)
             }
             onRemove={activeTab === 'audio' ? handleRemoveAudio : handleRemoveSub}
             isLast={i === tracks.length - 1}

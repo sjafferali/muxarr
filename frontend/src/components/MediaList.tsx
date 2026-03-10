@@ -1,12 +1,10 @@
 import React, { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
-import { fetchMedia, fetchStats, syncMedia } from '../api/media'
-import { IconSearch, IconFilm, IconAudio, IconSubtitle, IconHDD, IconSync } from './Icons'
+import { useQuery } from '@tanstack/react-query'
+import { fetchMedia, fetchStats } from '../api/media'
+import { IconSearch, IconFilm, IconAudio, IconSubtitle, IconHDD } from './Icons'
 import MediaCard from './MediaCard'
 
 const MediaList: React.FC = () => {
-  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'movies' | 'shows'>('all')
 
@@ -24,16 +22,6 @@ const MediaList: React.FC = () => {
   const { data: stats } = useQuery({
     queryKey: ['stats'],
     queryFn: fetchStats,
-  })
-
-  const syncMutation = useMutation({
-    mutationFn: syncMedia,
-    onSuccess: (data) => {
-      toast.success(`Synced ${data.synced} media items`)
-      queryClient.invalidateQueries({ queryKey: ['media'] })
-      queryClient.invalidateQueries({ queryKey: ['stats'] })
-    },
-    onError: () => toast.error('Sync failed'),
   })
 
   const statsCards = [
@@ -93,16 +81,6 @@ const MediaList: React.FC = () => {
             </button>
           ))}
         </div>
-        <button
-          onClick={() => syncMutation.mutate()}
-          disabled={syncMutation.isPending}
-          className={`flex cursor-pointer items-center gap-2 rounded-[10px] border border-white/[0.06] bg-[#1c1f26] px-4 text-xs font-bold text-[#6b7280] transition-all duration-150 hover:bg-white/[0.04] hover:text-[#9ca3af] disabled:cursor-not-allowed disabled:opacity-50 ${
-            syncMutation.isPending ? 'animate-pulse' : ''
-          }`}
-        >
-          <IconSync className={syncMutation.isPending ? 'animate-spin' : ''} />
-          Sync
-        </button>
       </div>
 
       {/* Stats Row */}

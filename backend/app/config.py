@@ -29,22 +29,6 @@ class Settings(BaseSettings):
     PORT: int = Field(default=8000, description="Server port")
     WORKERS: int = Field(default=1, description="Number of worker processes")
 
-    # Database
-    DATABASE_TYPE: str = Field(default="sqlite", description="Database type (sqlite or postgresql)")
-    DATABASE_URL: str | None = Field(default=None, description="Database connection URL")
-
-    # PostgreSQL specific settings
-    POSTGRES_HOST: str = Field(default="localhost", description="PostgreSQL host")
-    POSTGRES_PORT: int = Field(default=5432, description="PostgreSQL port")
-    POSTGRES_USER: str = Field(default="postgres", description="PostgreSQL user")
-    POSTGRES_PASSWORD: str = Field(default="postgres", description="PostgreSQL password")
-    POSTGRES_DB: str = Field(default="webapp", description="PostgreSQL database name")
-
-    # SQLite specific settings
-    SQLITE_DATABASE_PATH: str = Field(
-        default="./muxarr.db", description="SQLite database file path"
-    )
-
     # Security
     SECRET_KEY: str = Field(
         default="change-me-in-production-use-a-long-random-string",
@@ -92,34 +76,6 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="allow",
     )
-
-    @property
-    def database_url_async(self) -> str:
-        """Get async database URL."""
-        if self.DATABASE_URL:
-            # Convert postgresql:// to postgresql+asyncpg://
-            if self.DATABASE_URL.startswith("postgresql://"):
-                return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
-            return self.DATABASE_URL
-
-        if self.DATABASE_TYPE == "postgresql":
-            return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-        else:
-            return f"sqlite+aiosqlite:///{self.SQLITE_DATABASE_PATH}"
-
-    @property
-    def database_url_sync(self) -> str:
-        """Get sync database URL (for Alembic migrations)."""
-        if self.DATABASE_URL:
-            # Keep postgresql:// for sync connections
-            if self.DATABASE_URL.startswith("postgresql+asyncpg://"):
-                return self.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
-            return self.DATABASE_URL
-
-        if self.DATABASE_TYPE == "postgresql":
-            return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-        else:
-            return f"sqlite:///{self.SQLITE_DATABASE_PATH}"
 
 
 @lru_cache

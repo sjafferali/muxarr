@@ -1,5 +1,4 @@
 export interface AudioTrack {
-  id: number
   stream_index: number
   language: string | null
   language_code: string | null
@@ -11,7 +10,6 @@ export interface AudioTrack {
 }
 
 export interface SubtitleTrack {
-  id: number
   stream_index: number
   language: string | null
   language_code: string | null
@@ -22,7 +20,7 @@ export interface SubtitleTrack {
 }
 
 export interface MediaItem {
-  id: number
+  id: string
   title: string
   year: number | null
   media_type: 'movie' | 'show'
@@ -39,7 +37,7 @@ export interface MediaItem {
 }
 
 export interface MediaDetail {
-  id: number
+  id: string
   title: string
   year: number | null
   media_type: 'movie' | 'show'
@@ -52,9 +50,6 @@ export interface MediaDetail {
   video_codec: string | null
   container: string | null
   file_path: string | null
-  arr_id: number | null
-  arr_type: string | null
-  last_scanned: string | null
   audio_tracks: AudioTrack[]
   subtitle_tracks: SubtitleTrack[]
 }

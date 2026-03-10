@@ -11,7 +11,7 @@ export async function fetchMedia(params?: {
   return data
 }
 
-export async function fetchMediaDetail(id: number): Promise<MediaDetail> {
+export async function fetchMediaDetail(id: string): Promise<MediaDetail> {
   const { data } = await api.get(`/media/${id}`)
   return data
 }
@@ -21,26 +21,21 @@ export async function fetchStats(): Promise<LibraryStats> {
   return data
 }
 
-export async function setDefaultAudioTrack(mediaId: number, trackId: number): Promise<void> {
-  await api.post(`/media/${mediaId}/tracks/audio/${trackId}/default`)
+export async function setDefaultAudioTrack(mediaId: string, streamIndex: number): Promise<void> {
+  await api.post(`/media/${mediaId}/tracks/audio/${streamIndex}/default`)
 }
 
-export async function setDefaultSubtitleTrack(mediaId: number, trackId: number): Promise<void> {
-  await api.post(`/media/${mediaId}/tracks/subtitle/${trackId}/default`)
+export async function setDefaultSubtitleTrack(
+  mediaId: string,
+  streamIndex: number
+): Promise<void> {
+  await api.post(`/media/${mediaId}/tracks/subtitle/${streamIndex}/default`)
 }
 
-export async function removeAudioTrack(mediaId: number, trackId: number): Promise<void> {
-  await api.delete(`/media/${mediaId}/tracks/audio/${trackId}`)
+export async function removeAudioTrack(mediaId: string, streamIndex: number): Promise<void> {
+  await api.delete(`/media/${mediaId}/tracks/audio/${streamIndex}`)
 }
 
-export async function removeSubtitleTrack(mediaId: number, trackId: number): Promise<void> {
-  await api.delete(`/media/${mediaId}/tracks/subtitle/${trackId}`)
-}
-
-export async function syncMedia(): Promise<{
-  synced: number
-  errors: string[]
-}> {
-  const { data } = await api.post('/media/sync')
-  return data
+export async function removeSubtitleTrack(mediaId: string, streamIndex: number): Promise<void> {
+  await api.delete(`/media/${mediaId}/tracks/subtitle/${streamIndex}`)
 }
