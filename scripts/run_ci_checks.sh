@@ -60,7 +60,6 @@ SKIP_DOCKER=true
 AUTO_FIX=true
 FRONTEND_ONLY=false
 BACKEND_ONLY=false
-USE_POSTGRES=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -70,7 +69,6 @@ while [[ $# -gt 0 ]]; do
     --no-auto-fix) AUTO_FIX=false; shift ;;
     --frontend-only) FRONTEND_ONLY=true; shift ;;
     --backend-only) BACKEND_ONLY=true; shift ;;
-    --postgres) USE_POSTGRES=true; shift ;;
     -h|--help)
       echo "Usage: $0 [OPTIONS]"
       echo ""
@@ -81,7 +79,6 @@ while [[ $# -gt 0 ]]; do
       echo "  --no-auto-fix     Disable automatic fixes for ESLint and Ruff"
       echo "  --frontend-only   Run only frontend checks"
       echo "  --backend-only    Run only backend checks"
-      echo "  --postgres        Use PostgreSQL for tests"
       echo "  -h, --help        Show this help message"
       exit 0 ;;
     *)
@@ -142,42 +139,9 @@ if [ "$SKIP_TESTS" = false ] && [ "$FRONTEND_ONLY" = false ]; then
         poetry install --with dev
     fi
 
-    # Setup PostgreSQL if requested
-    POSTGRES_CONTAINER=""
-    if [ "$USE_POSTGRES" = true ]; then
-        echo -e "${YELLOW}Starting PostgreSQL container for tests...${NC}"
-
-        if ! command -v docker &> /dev/null; then
-            print_error "Docker is required for PostgreSQL tests"
-            exit 1
-        fi
-
-        POSTGRES_CONTAINER="webapp-test-db-$$"
-        docker run -d \
-            --name "$POSTGRES_CONTAINER" \
-            -e POSTGRES_USER=test_user \
-            -e POSTGRES_PASSWORD=test_password \
-            -e POSTGRES_DB=test_webapp \
-            -p 5432:5432 \
-            postgres:15-alpine > /dev/null 2>&1
-
-        echo -e "${YELLOW}Waiting for PostgreSQL...${NC}"
-        sleep 5
-
-        export DATABASE_URL="postgresql://test_user:test_password@localhost:5432/test_webapp"
-        export TESTING="true"
-        print_success "PostgreSQL test database started"
-    else
-        export TESTING="true"
-        print_success "Using SQLite for tests"
-    fi
+    export TESTING="true"
 
     run_check "Backend tests with coverage" "poetry run pytest --cov=backend/app --cov-report=term"
-
-    if [ -n "$POSTGRES_CONTAINER" ]; then
-        docker rm -f "$POSTGRES_CONTAINER" > /dev/null 2>&1
-        print_success "PostgreSQL test database stopped"
-    fi
 
     cd "$PROJECT_ROOT"
 fi

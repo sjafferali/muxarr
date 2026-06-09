@@ -63,11 +63,6 @@ Dockerfile*
 logs/
 *.log
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
 # Environment files
 .env
 .env.*

@@ -92,9 +92,9 @@ RUN mkdir -p /var/cache/nginx /var/log/nginx /run && \
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 
-# Create directories for logs and data
-RUN mkdir -p /app/logs /app/data && \
-    chown -R appuser:appuser /app/logs /app/data
+# Create directory for logs
+RUN mkdir -p /app/logs && \
+    chown -R appuser:appuser /app/logs
 
 # Environment variables
 ENV PYTHONPATH=/app \
