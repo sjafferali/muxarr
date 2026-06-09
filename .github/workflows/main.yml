@@ -20,7 +20,7 @@ env:
 jobs:
   # Backend Tests
   backend-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     name: Backend Tests
 
     steps:
@@ -68,7 +68,7 @@ jobs:
 
   # Frontend Tests
   frontend-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     name: Frontend Tests
 
     steps:
@@ -104,7 +104,7 @@ jobs:
 
   # Linting - Python
   python-lint:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     name: Python Linting
 
     steps:
@@ -143,7 +143,7 @@ jobs:
 
   # Dependency Security Check
   dependency-check:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     name: Dependency Security Check
 
     steps:
@@ -167,7 +167,7 @@ jobs:
   # Docker Build (runs in parallel with tests)
   docker-build:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     name: Docker Build (${{ matrix.platform }})
     strategy:
       fail-fast: false
@@ -229,7 +229,7 @@ jobs:
   # Docker Push (only after all tests pass)
   docker-push:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     needs: [backend-tests, frontend-tests, python-lint, docker-build]
     name: Docker Push
     permissions:
@@ -288,7 +288,7 @@ jobs:
 
   # All checks passed
   ci-success:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     needs: [backend-tests, frontend-tests, python-lint, dependency-check, docker-push]
     if: always()
     name: CI Success
