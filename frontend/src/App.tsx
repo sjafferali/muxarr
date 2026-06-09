@@ -4,8 +4,11 @@ import { fetchStats } from './api/media'
 import MediaList from './components/MediaList'
 import MediaDetailView from './components/MediaDetailView'
 import SeriesDetailView from './components/SeriesDetailView'
+import { useAuth } from './auth/context'
+import { IconLogout } from './components/Icons'
 
 function App() {
+  const { authRequired, logout } = useAuth()
   const { data: stats } = useQuery({
     queryKey: ['stats'],
     queryFn: fetchStats,
@@ -33,6 +36,20 @@ function App() {
           <span>{stats?.total_subtitle_tracks ?? 0} subs</span>
           <span className="h-4 w-px bg-[#2a2d36]" />
           <span>{stats?.total_size_gb?.toFixed(1) ?? '0.0'} GB</span>
+          {authRequired && (
+            <>
+              <span className="h-4 w-px bg-[#2a2d36]" />
+              <button
+                type="button"
+                onClick={logout}
+                title="Sign out"
+                className="flex items-center gap-1.5 text-[#6b7280] transition-colors hover:text-[#e8eaed]"
+              >
+                <IconLogout className="h-4 w-4" />
+                Sign out
+              </button>
+            </>
+          )}
         </div>
       </header>
 

@@ -1,7 +1,5 @@
-import axios from 'axios'
 import type { MediaItem, MediaDetail, LibraryStats, EpisodeFile } from '../types/media'
-
-const api = axios.create({ baseURL: '/api/v1' })
+import { api } from './client'
 
 export async function fetchMedia(params?: {
   media_type?: string

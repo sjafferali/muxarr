@@ -4,13 +4,14 @@ A media track manager for your *arr media library. Muxarr integrates with Radarr
 
 ## Features
 
-- **Library sync** -- imports movies from Radarr and series from Sonarr
+- **Live library** -- pulls movies from Radarr and series from Sonarr on demand
 - **Track analysis** -- probes media files with ffprobe to list all audio and subtitle tracks with codec, language, channel layout, and bitrate details
 - **Set default tracks** -- change the default audio or subtitle track in-place using mkvpropedit (no remuxing required)
 - **Remove tracks** -- strip unwanted audio or subtitle tracks by remuxing with mkvmerge
 - **Dark-themed UI** -- clean, responsive interface for browsing your library and managing tracks
 - **Search and filter** -- find media by title, filter by movies or shows
 - **Library stats** -- total titles, track counts, and library size at a glance
+- **Optional authentication** -- protect the UI and API with a username/password and/or an API token
 
 ## Quick Start
 
@@ -26,8 +27,6 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_TYPE=sqlite
-      - SQLITE_DATABASE_PATH=/app/data/muxarr.db
       - RADARR_URL=http://radarr:7878
       - RADARR_API_KEY=your-radarr-api-key
       - SONARR_URL=http://sonarr:8989
@@ -35,11 +34,7 @@ services:
       - SECRET_KEY=generate-a-random-string-here
     restart: unless-stopped
     volumes:
-      - muxarr_data:/app/data
       - /path/to/your/media:/media  # mount your media library
-
-volumes:
-  muxarr_data:
 ```
 
 2. Start the container:
@@ -48,7 +43,7 @@ volumes:
 docker compose up -d
 ```
 
-3. Open http://localhost:8080 and click **Sync** to import your library.
+3. Open http://localhost:8080 to browse your library.
 
 ### Docker Run
 
@@ -61,7 +56,6 @@ docker run -d \
   -e SONARR_URL=http://sonarr:8989 \
   -e SONARR_API_KEY=your-sonarr-api-key \
   -e SECRET_KEY=generate-a-random-string-here \
-  -v muxarr_data:/app/data \
   -v /path/to/your/media:/media \
   sjafferali/muxarr:latest
 ```
@@ -76,40 +70,47 @@ docker run -d \
 | `RADARR_API_KEY` | _(empty)_ | Radarr API key (Settings > General in Radarr) |
 | `SONARR_URL` | _(empty)_ | Sonarr server URL (e.g., `http://sonarr:8989`) |
 | `SONARR_API_KEY` | _(empty)_ | Sonarr API key (Settings > General in Sonarr) |
-| `DATABASE_TYPE` | `sqlite` | Database type (`sqlite` or `postgresql`) |
-| `SQLITE_DATABASE_PATH` | `./muxarr.db` | SQLite database file path |
-| `SECRET_KEY` | _(insecure default)_ | Secret key for the application -- generate a random string for production |
+| `AUTH_USERNAME` | _(empty)_ | Username required to access the app (enables login when set with `AUTH_PASSWORD`) |
+| `AUTH_PASSWORD` | _(empty)_ | Password required to access the app |
+| `API_TOKEN` | _(empty)_ | Static token for programmatic access via the `Authorization: Bearer` or `X-API-Key` header |
+| `SECRET_KEY` | _(insecure default)_ | Secret key used to sign login session tokens -- generate a random string for production |
 | `WORKERS` | `1` | Number of uvicorn worker processes |
 | `FFPROBE_PATH` | `ffprobe` | Path to ffprobe binary (included in Docker image) |
 | `MKVPROPEDIT_PATH` | `mkvpropedit` | Path to mkvpropedit binary (included in Docker image) |
 | `MKVMERGE_PATH` | `mkvmerge` | Path to mkvmerge binary (included in Docker image) |
 | `LOG_LEVEL` | `INFO` | Logging level |
 
-### PostgreSQL (Optional)
-
-For larger libraries, you can use PostgreSQL instead of SQLite:
-
-| Variable | Default | Description |
-|---|---|---|
-| `DATABASE_TYPE` | `sqlite` | Set to `postgresql` |
-| `POSTGRES_HOST` | `localhost` | PostgreSQL host |
-| `POSTGRES_PORT` | `5432` | PostgreSQL port |
-| `POSTGRES_USER` | `postgres` | PostgreSQL user |
-| `POSTGRES_PASSWORD` | `postgres` | PostgreSQL password |
-| `POSTGRES_DB` | `webapp` | PostgreSQL database name |
-
 ### Volume Mounts
 
 | Path | Purpose |
 |---|---|
-| `/app/data` | Database storage (SQLite) |
 | `/media` (or your choice) | Your media library -- must match the paths Radarr/Sonarr report for media files |
 
 **Important:** The media volume mount path must match what Radarr/Sonarr report as file paths. If Radarr says a movie is at `/movies/Movie Name/movie.mkv`, mount your movies directory to `/movies` in the Muxarr container.
 
+### Authentication
+
+Authentication is **optional and disabled by default**. It is enforced only when you configure credentials:
+
+- **Username/password** -- set both `AUTH_USERNAME` and `AUTH_PASSWORD`. The web UI then presents a sign-in screen, and the API requires credentials. Set `SECRET_KEY` to a random string so login sessions stay valid across restarts.
+- **API token** -- set `API_TOKEN` to grant programmatic access. Send it on each request as either header:
+
+  ```bash
+  curl -H "X-API-Key: your-api-token" http://localhost:8080/api/v1/media
+  curl -H "Authorization: Bearer your-api-token" http://localhost:8080/api/v1/media
+  ```
+
+You can set either, both, or neither. When neither is set, the app is open and requires no login. API clients may also authenticate with HTTP Basic using the configured username and password:
+
+```bash
+curl -u your-username:your-password http://localhost:8080/api/v1/media
+```
+
+The `/health` endpoint is always reachable without authentication so container health checks keep working.
+
 ## How It Works
 
-1. **Sync** -- Muxarr calls the Radarr/Sonarr APIs to discover your media library (titles, posters, quality info)
+1. **Discover** -- Muxarr calls the Radarr/Sonarr APIs to list your media library (titles, posters, quality info)
 2. **Probe** -- Each media file is scanned with `ffprobe` to extract audio and subtitle track metadata
 3. **Browse** -- The web UI displays your library with track counts and lets you drill into individual titles
 4. **Manage** -- Set default tracks (uses `mkvpropedit`, instant, no remux) or remove tracks (uses `mkvmerge`, remuxes the file)
@@ -162,10 +163,12 @@ Key endpoints:
 
 | Method | Path | Description |
 |---|---|---|
+| `GET` | `/api/v1/auth/status` | Whether authentication is required (no auth needed) |
+| `POST` | `/api/v1/auth/login` | Exchange username/password for a session token (no auth needed) |
 | `GET` | `/api/v1/media` | List media (supports `?media_type=movie&search=term`) |
 | `GET` | `/api/v1/media/stats` | Library statistics |
 | `GET` | `/api/v1/media/{id}` | Media detail with all tracks |
-| `POST` | `/api/v1/media/sync` | Sync from Radarr/Sonarr |
+| `GET` | `/api/v1/media/{id}/episodes` | Episode files for a series |
 | `POST` | `/api/v1/media/{id}/tracks/audio/{track_id}/default` | Set default audio track |
 | `POST` | `/api/v1/media/{id}/tracks/subtitle/{track_id}/default` | Set default subtitle track |
 | `DELETE` | `/api/v1/media/{id}/tracks/audio/{track_id}` | Remove audio track |
@@ -178,14 +181,12 @@ Key endpoints:
 ├── backend/
 │   ├── app/
 │   │   ├── api/v1/endpoints/  # API route handlers
-│   │   ├── core/              # Database setup
-│   │   ├── models/            # SQLAlchemy models (Media, AudioTrack, SubtitleTrack)
+│   │   ├── core/              # Security helpers
 │   │   ├── schemas/           # Pydantic response schemas
 │   │   ├── services/          # Radarr, Sonarr, ffprobe, mkvtoolnix integrations
 │   │   ├── config.py          # Settings
 │   │   └── main.py            # FastAPI app
-│   ├── tests/
-│   └── alembic/               # Database migrations
+│   └── tests/
 ├── frontend/
 │   ├── src/
 │   │   ├── api/               # API client functions
@@ -230,7 +231,7 @@ Configure these in your GitHub repository under **Settings > Secrets and variabl
 
 ### What the Pipeline Does
 
-1. **Backend tests** -- runs pytest against a PostgreSQL service container
+1. **Backend tests** -- runs pytest
 2. **Frontend tests** -- TypeScript check, ESLint, production build
 3. **Python linting** -- ruff and mypy
 4. **Dependency security check** -- npm audit

@@ -32,15 +32,22 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = Field(
         default="change-me-in-production-use-a-long-random-string",
-        description="Secret key for encryption",
+        description="Secret key for signing session tokens",
     )
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
         default=30, description="Access token expiration time in minutes"
     )
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(
-        default=7, description="Refresh token expiration time in days"
+        default=7, description="Browser session token lifetime in days"
     )
     PASSWORD_MIN_LENGTH: int = Field(default=8, description="Minimum password length")
+
+    # Authentication
+    # Setting a username and password requires login for the web UI and API.
+    AUTH_USERNAME: str = Field(default="", description="Username required to access the app")
+    AUTH_PASSWORD: str = Field(default="", description="Password required to access the app")
+    # A static token accepted via the Authorization: Bearer or X-API-Key header.
+    API_TOKEN: str = Field(default="", description="Static API token for programmatic access")
 
     # Logging
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
